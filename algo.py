@@ -162,8 +162,16 @@ def maximize(G,com,metaedges,wn,W,P,outside,inside,wtot,edge,index,m,ϵ=0):
     return com, wn, W, P, outside, inside, wtot, edge, index, m
 
 def aggregation(G,com,wn,W,P,outside,inside,wtot,edge,index,m):
+    """Aggregation step.
+
+    Keyword arguments:
+    G         -- the graph to be clustered
+    com       -- the current communities in the graph
+    """
     vals = set(com.values())
     metaedges = []
+    #the ori dictionary will be used to keep track of the communities
+    #of each edge
     ori = {}
     for val in vals:
         els=set()
@@ -240,16 +248,27 @@ def aggregation(G,com,wn,W,P,outside,inside,wtot,edge,index,m):
     return com,metaedges,wn,W,P,outside,inside,wtot,edge,index,m,ori
 
 def edge_cluster(G,ϵ=0):
+    """Global algorithm for edge clustering.
+
+    Keyword arguments:
+    G -- the graph to be clustered
+    ϵ -- desired minimum increase in modularity for maximization
+    """
+    #the original graph will not be modified
     Gex = G.copy()
     n = G.size() + 1
     m = len(G.edges())
     maxi = first_maximize(Gex,ϵ)
+    #keep track of the indexes for the original edges
     map_edge = maxi[7]
     ori = {i:i for i in range(m)}
+    #repeat the maximization and aggregation steps
+    #as long as the number of nodes decreases
     while Gex.size()<n:
         n=Gex.size()
         agg = aggregation(Gex, *maxi)
         new_ori = agg[-1]
+        #actualize the communities of each edge
         ori = {i: (new_ori[ori[i]] if ori[i] in new_ori.keys() else ori[i])
             for i in range(m)}
         maxi = maximize(Gex, *agg[:-1], ϵ)
