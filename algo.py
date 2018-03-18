@@ -87,7 +87,7 @@ def maximize(G,com,metaedges,wn,W,P,outside,inside,wtot,edge,index,m,ϵ=0):
     Keyword arguments:
     G         -- the graph to be clustered
     com       -- the current communities in the graph
-    metaedges -- list of aggregated edgelist
+    metaedges -- list of aggregated edges
     """
     old_W = deepcopy(W)
     increased = True
@@ -261,6 +261,10 @@ def edge_cluster(G,ϵ=0):
     maxi = first_maximize(Gex,ϵ)
     #keep track of the indexes for the original edges
     map_edge = maxi[7]
+    insides = dict()
+    for com in maxi[5].keys():
+        for node in maxi[5][com]:
+            insides[node] = com
     ori = {i:i for i in range(m)}
     #repeat the maximization and aggregation steps
     #as long as the number of nodes decreases
@@ -268,8 +272,15 @@ def edge_cluster(G,ϵ=0):
         n=Gex.size()
         agg = aggregation(Gex, *maxi)
         new_ori = agg[-1]
-        #actualize the communities of each edge
-        ori = {i: (new_ori[ori[i]] if ori[i] in new_ori.keys() else ori[i])
-            for i in range(m)}
+        ori = {i: (new_ori[ori[i]] if ori[i] in new_ori.keys() else ori[i]) for i in range(m)}
+        insides = {i: (new_ori[insides[i]] if insides[i] in new_ori.keys() else insides[i]) for i in insides.keys()}
         maxi = maximize(Gex, *agg[:-1], ϵ)
-    return {map_edge[i]:maxi[0][ori[i]] for i in range(m)}
+        new_inside = maxi[5]
+        for com in set(new_ori.values()).intersection(new_inside.keys()):
+            for node in new_inside[com].difference(set(insides.keys())):
+                insides[node] = com
+    outsides = maxi[4]
+    interfaces = set()
+    for el in outsides.keys():
+        interfaces.update(outsides[el])
+    return {map_edge[i]:maxi[0][ori[i]] for i in range(m)},interfaces,maxi[2],insides
